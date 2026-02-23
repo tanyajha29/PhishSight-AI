@@ -1,0 +1,11 @@
+url,label
+https://www.google.com,0
+https://www.openai.com,0
+https://github.com,0
+https://example.com,0
+http://login.secure.verify.account.paypal.xyz/secure/account/update?session=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,1
+http://192.168.0.1/verify@account/update?session=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1
+http://secure-login.paypal.com.account.verify.top/login,1
+http://accounts.google.com.security-check.info/login,1
+http://banking.example.com.user.update.top/verify,1
+https://www.wikipedia.org,0
