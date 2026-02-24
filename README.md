@@ -1,20 +1,13 @@
 # PhishSight AI
 
-A multi-service phishing detection platform composed of a Chrome Extension, Node.js backend, Python ML API, React dashboard, and MongoDB.
-
-**Current modules**
-- Chrome Extension (Manifest V3)
-- Node.js + Express backend
-- Python ML service (Flask)
-- React dashboard (Vite)
-- MongoDB
+PhishSight AI is a product-style phishing protection extension with automatic background scanning and blocking. It uses a Node.js backend, a Python ML API, and MongoDB for storage.
 
 ## Architecture
 **High-level flow**
-1. Extension collects the active URL and sends it to the backend.
-2. Backend forwards the URL to the ML service and receives a probability + verdict.
-3. Backend stores results in MongoDB and returns a response to the extension/dashboard.
-4. Dashboard reads aggregate metrics and user history via the backend API.
+1. Extension runs in the background and monitors active tabs.
+2. The extension sends URLs to the backend `/api/check-url` with a JWT.
+3. Backend calls the ML API `/predict`, combines ML + heuristic scoring, and stores results in MongoDB.
+4. Extension updates its UI, badge, and blocks unsafe pages.
 
 ## Repository Structure
 ```
@@ -22,25 +15,17 @@ root/
   extension/
   backend/
   ml-service/
-  dashboard/
 ```
 
 ## Local Setup
 **Prerequisites**
 - Node.js 18+ (or 20+)
 - Python 3.10+
-- Docker (for MongoDB)
+- Docker (MongoDB) or a local MongoDB instance
 
 **MongoDB (Docker)**
 ```bash
 docker run -d -p 27017:27017 --name mongo mongo:7
-```
-
-**Backend**
-```bash
-cd backend
-npm install
-npm run dev
 ```
 
 **ML API**
@@ -53,56 +38,85 @@ python train.py --data data/sample_urls.csv --output model.pkl
 python app.py
 ```
 
-**Dashboard**
+**Backend**
 ```bash
-cd dashboard
+cd backend
 npm install
 npm run dev
 ```
+
+**Extension**
+1. Open `chrome://extensions`
+2. Enable Developer Mode
+3. Load unpacked ? select `extension/`
 
 ## Environment Variables
 **Backend** (`backend/.env`)
 | Variable | Description | Example |
 | --- | --- | --- |
 | `PORT` | Backend port | `5000` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/phishsight` |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/phishsight` |
 | `JWT_SECRET` | JWT signing key | `change_this_secret` |
-| `ML_API_URL` | ML API predict endpoint | `http://localhost:8000/predict` |
-| `CORS_ORIGIN` | Allowed origins | `http://localhost:5173` |
+| `ML_API_URL` | ML API predict endpoint | `http://127.0.0.1:8000/predict` |
+| `CORS_ORIGIN` | Allowed origins (optional) | `http://localhost:5174` |
 
-**ML API** (`ml-service/.env` optional)
-| Variable | Description | Example |
-| --- | --- | --- |
-| `MODEL_PATH` | Path to model pickle | `model.pkl` |
+## Extension API Endpoints
+**Email-only onboarding**
+- `POST /api/auth/extension-login`
 
-**Dashboard** (`dashboard/.env`)
-| Variable | Description | Example |
-| --- | --- | --- |
-| `VITE_API_URL` | Backend base URL | `http://localhost:5000` |
+Body:
+```json
+{ "email": "user@example.com" }
+```
 
-## API Notes
-**Auth**
-- `POST /api/auth/register`
-- `POST /api/auth/login`
+Response:
+```json
+{ "token": "<jwt>", "user": { ... } }
+```
 
-**URL checks**
+**URL check**
 - `POST /api/check-url` (protected)
 
-**Dashboard data (expected)**
-- `GET /api/admin/dashboard`
-- `GET /api/user/history`
+Response:
+```json
+{
+  "ml_probability": 0.91,
+  "heuristic_score": 78,
+  "verdict": "blocked",
+  "reasons": ["..."]
+}
+```
 
-## Chrome Extension
-Load the `extension/` folder via `chrome://extensions` in Developer Mode. Configure the backend endpoint and JWT token in the extension popup.
+**User stats**
+- `GET /api/user/stats` (protected)
+
+Response:
+```json
+{
+  "pages_scanned": 6241,
+  "blocked_count": 3,
+  "suspicious_count": 12
+}
+```
+
+## Usage Workflow
+1. Install extension.
+2. Enter email once to activate protection.
+3. Extension stores JWT in `chrome.storage.local`.
+4. Background scanning runs automatically on tab updates.
+5. Unsafe sites are blocked with a warning page and reasons.
+6. Stats + current site details are visible in the popup.
+
+## Security Notes
+- JWT is stored only in `chrome.storage.local`.
+- Token is never shown in the UI.
+- Logout clears all local token data.
 
 ## Testing
-- Use Postman or curl to register/login and validate `/api/check-url` responses.
-- Ensure ML API is running and returns a `probability` and `prediction`.
-- Verify the dashboard can log in and fetch admin/user data.
-- Verify the extension sends the current URL and displays overlay for phishing verdicts.
-
-## Deployment
-See the deployment guide in the project documentation for Render (backend), Railway (ML API), and Vercel (dashboard).
+- Open the extension popup and activate with email.
+- Visit a safe site to see `Safe` status.
+- Visit a suspicious URL to see `Suspicious` status.
+- Visit a phishing-style URL to trigger `Blocked` and the warning page.
 
 ## License
 Proprietary. All rights reserved.
