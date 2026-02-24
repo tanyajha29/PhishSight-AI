@@ -12,9 +12,18 @@ const app = express();
 
 app.use(express.json({ limit: '1mb' }));
 const corsOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((v) => v.trim())
+  ? process.env.CORS_ORIGIN.split(',').map((v) => v.trim()).filter(Boolean)
   : null;
-app.use(cors(corsOrigins ? { origin: corsOrigins, credentials: true } : {}));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (origin.startsWith('chrome-extension://')) return callback(null, true);
+    if (!corsOrigins) return callback(null, true);
+    if (corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
