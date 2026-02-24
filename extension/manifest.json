@@ -1,23 +1,18 @@
 {
   "name": "PhishSight AI",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "manifest_version": 3,
-  "description": "Heuristic phishing detection extension.",
+  "description": "Real-time phishing protection with automatic blocking.",
   "action": {
     "default_title": "PhishSight AI",
     "default_popup": "popup.html"
   },
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
-  "permissions": ["tabs", "activeTab", "storage"],
-  "host_permissions": ["<all_urls>"],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
+  "permissions": ["storage", "tabs", "activeTab"],
+  "host_permissions": [
+    "http://localhost:5000/*",
+    "http://127.0.0.1:5000/*"
   ]
 }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dangerous Website Blocked</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="blocked-page">
+    <div class="blocked-card">
+      <div class="blocked-title">? Dangerous Website Blocked</div>
+      <div id="blockedUrl" class="blocked-url">Loading…</div>
+
+      <div class="section">
+        <div class="section-title" style="color:#94a3b8;">Risk Level</div>
+        <div id="blockedVerdict" class="risk-pill risk-blocked">BLOCKED</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="color:#94a3b8;">Reasons</div>
+        <ul id="blockedReasons" class="reasons"></ul>
+      </div>
+
+      <div class="blocked-actions">
+        <button id="goBack" class="btn btn-outline">Go Back</button>
+        <button id="proceedAnyway" class="btn btn-primary">Proceed Anyway</button>
+      </div>
+    </div>
+
+    <script src="blocked.js"></script>
+  </body>
+</html>

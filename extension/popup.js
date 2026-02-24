@@ -1,130 +1,220 @@
-const urlEl = document.getElementById('url');
-const heuristicEl = document.getElementById('heuristicScore');
-const mlEl = document.getElementById('mlProbability');
-const verdictEl = document.getElementById('finalVerdict');
-const statusEl = document.getElementById('status');
-const warningEl = document.getElementById('warning');
+const API_BASE = 'http://localhost:5000';
 
-const backendInput = document.getElementById('backendUrl');
-const tokenInput = document.getElementById('token');
-const saveBtn = document.getElementById('saveBtn');
-const saveStatus = document.getElementById('saveStatus');
+const stateIntro = document.getElementById('stateIntro');
+const stateEmail = document.getElementById('stateEmail');
+const stateActive = document.getElementById('stateActive');
 
-const DEFAULT_ENDPOINT = 'http://localhost:5000/api/check-url';
+const startBtn = document.getElementById('startBtn');
+const activateBtn = document.getElementById('activateBtn');
+const emailInput = document.getElementById('emailInput');
+const emailError = document.getElementById('emailError');
 
-function setWarning(show) {
-  if (show) warningEl.classList.add('show');
-  else warningEl.classList.remove('show');
+const statusPill = document.getElementById('statusPill');
+const pagesScannedEl = document.getElementById('pagesScanned');
+const blockedCountEl = document.getElementById('blockedCount');
+const suspiciousCountEl = document.getElementById('suspiciousCount');
+
+const currentUrlEl = document.getElementById('currentUrl');
+const riskLevelEl = document.getElementById('riskLevel');
+const mlProbabilityEl = document.getElementById('mlProbability');
+const heuristicScoreEl = document.getElementById('heuristicScore');
+const reasonsListEl = document.getElementById('reasonsList');
+
+const toggleRecentEl = document.getElementById('toggleRecent');
+const recentListEl = document.getElementById('recentList');
+const logoutBtn = document.getElementById('logoutBtn');
+
+let recentOpen = false;
+
+function showState(state) {
+  stateIntro.classList.remove('active');
+  stateEmail.classList.remove('active');
+  stateActive.classList.remove('active');
+
+  if (state === 'intro') stateIntro.classList.add('active');
+  if (state === 'email') stateEmail.classList.add('active');
+  if (state === 'active') stateActive.classList.add('active');
 }
 
-function setStatus(items) {
-  statusEl.innerHTML = '';
-  if (!items || items.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = 'OK';
-    statusEl.appendChild(li);
+function setStatusPill(verdict) {
+  statusPill.className = 'risk-pill';
+  if (!verdict) {
+    statusPill.textContent = 'Checking…';
     return;
   }
-  for (const item of items) {
+
+  if (verdict === 'safe') {
+    statusPill.textContent = 'Protection Active';
+    statusPill.classList.add('risk-safe');
+  } else if (verdict === 'suspicious') {
+    statusPill.textContent = 'Suspicious Site';
+    statusPill.classList.add('risk-suspicious');
+  } else if (verdict === 'blocked') {
+    statusPill.textContent = 'Blocked Site';
+    statusPill.classList.add('risk-blocked');
+  } else {
+    statusPill.textContent = 'Protection Active';
+  }
+}
+
+function renderReasons(reasons) {
+  reasonsListEl.innerHTML = '';
+  if (!reasons || reasons.length === 0) {
     const li = document.createElement('li');
-    li.textContent = item;
-    statusEl.appendChild(li);
+    li.textContent = 'No risk factors detected.';
+    reasonsListEl.appendChild(li);
+    return;
   }
-}
 
-async function loadSettings() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['backendUrl', 'authToken'], (data) => {
-      resolve({
-        backendUrl: data.backendUrl || DEFAULT_ENDPOINT,
-        authToken: data.authToken || ''
-      });
-    });
+  reasons.forEach((reason) => {
+    const li = document.createElement('li');
+    li.textContent = reason;
+    reasonsListEl.appendChild(li);
   });
 }
 
-async function saveSettings() {
-  const backendUrl = backendInput.value.trim() || DEFAULT_ENDPOINT;
-  const authToken = tokenInput.value.trim();
+function renderRecentActivity(items) {
+  recentListEl.innerHTML = '';
+  if (!items || items.length === 0) {
+    recentListEl.textContent = 'No recent activity.';
+    return;
+  }
 
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ backendUrl, authToken }, () => resolve());
+  items.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'recent-item';
+    row.innerHTML = `
+      <span title="${item.url}">${item.url}</span>
+      <span>${item.verdict}</span>
+    `;
+    recentListEl.appendChild(row);
   });
 }
 
-async function sendOverlay(verdict) {
-  const isPhishing = String(verdict).toLowerCase() === 'phishing';
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tabId = tabs?.[0]?.id;
-    if (!tabId) return;
-    chrome.tabs.sendMessage(tabId, {
-      type: 'PHISHING_ALERT',
-      verdict: isPhishing ? 'phishing' : 'benign',
-      text: isPhishing ? 'This page was flagged as suspicious. Proceed with caution.' : ''
-    });
-  });
-}
-
-async function checkUrl(currentUrl, backendUrl, token) {
+async function fetchStats(token) {
   try {
-    const resp = await fetch(backendUrl, {
-      method: 'POST',
+    const resp = await fetch(`${API_BASE}/api/user/stats`, {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      body: JSON.stringify({ url: currentUrl })
+        Authorization: `Bearer ${token}`
+      }
     });
 
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-      throw new Error(data.error || `Request failed (${resp.status})`);
-    }
+    if (!resp.ok) throw new Error('Failed to load stats');
+    const data = await resp.json();
 
-    const heuristicScore = data.heuristicScore ?? '—';
-    const mlProbability = data.mlProbability ?? data.probability ?? '—';
-    const finalVerdict = data.finalVerdict ?? data.prediction ?? 'unknown';
-
-    heuristicEl.textContent = String(heuristicScore);
-    mlEl.textContent = String(mlProbability);
-    verdictEl.textContent = String(finalVerdict);
-
-    const isPhishing = String(finalVerdict).toLowerCase() === 'phishing';
-    setWarning(isPhishing);
-    setStatus([]);
-    await sendOverlay(finalVerdict);
-  } catch (err) {
-    heuristicEl.textContent = '—';
-    mlEl.textContent = '—';
-    verdictEl.textContent = 'error';
-    setWarning(false);
-    setStatus([String(err.message || err)]);
-    await sendOverlay('benign');
+    pagesScannedEl.textContent = data.pages_scanned ?? 0;
+    blockedCountEl.textContent = data.blocked_count ?? 0;
+    suspiciousCountEl.textContent = data.suspicious_count ?? 0;
+  } catch {
+    pagesScannedEl.textContent = '—';
+    blockedCountEl.textContent = '—';
+    suspiciousCountEl.textContent = '—';
   }
 }
 
-saveBtn.addEventListener('click', async () => {
-  await saveSettings();
-  saveStatus.textContent = 'Saved';
-  setTimeout(() => { saveStatus.textContent = ''; }, 1500);
-});
+function updateCurrentSite(result) {
+  if (!result) {
+    setStatusPill();
+    currentUrlEl.textContent = 'No scan data yet';
+    riskLevelEl.textContent = '—';
+    mlProbabilityEl.textContent = '—';
+    heuristicScoreEl.textContent = '—';
+    renderReasons([]);
+    return;
+  }
 
-(async function init() {
-  const settings = await loadSettings();
-  backendInput.value = settings.backendUrl;
-  tokenInput.value = settings.authToken;
+  setStatusPill(result.verdict);
+  currentUrlEl.textContent = result.url || 'Unknown';
+  riskLevelEl.textContent = result.verdict || '—';
+  mlProbabilityEl.textContent = result.ml_probability ?? '—';
+  heuristicScoreEl.textContent = result.heuristic_score ?? '—';
+  renderReasons(result.reasons || []);
+}
+
+async function requestCheckNow(tabId, url) {
+  chrome.runtime.sendMessage({ type: 'CHECK_NOW', tabId, url });
+}
+
+async function initActive(token) {
+  await fetchStats(token);
 
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tab = tabs && tabs[0];
-    const url = tab?.url;
-
-    if (!url) {
-      urlEl.textContent = 'Unavailable (no active tab URL)';
-      setStatus(['Unable to read URL.']);
+    const tab = tabs?.[0];
+    if (!tab?.url) {
+      currentUrlEl.textContent = 'No active tab';
       return;
     }
 
-    urlEl.textContent = url;
-    checkUrl(url, settings.backendUrl, settings.authToken);
+    requestCheckNow(tab.id, tab.url);
+
+    chrome.storage.local.get(['lastResult', 'recentActivity'], (data) => {
+      updateCurrentSite(data.lastResult);
+      renderRecentActivity(data.recentActivity || []);
+    });
   });
-})();
+}
+
+startBtn.addEventListener('click', () => {
+  showState('email');
+  emailInput.focus();
+});
+
+activateBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim();
+  if (!email) {
+    emailError.style.display = 'block';
+    emailError.textContent = 'Email is required.';
+    return;
+  }
+
+  emailError.style.display = 'none';
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/auth/extension-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok || !data.token) {
+      throw new Error(data.error || 'Activation failed');
+    }
+
+    await chrome.storage.local.set({ token: data.token });
+    showState('active');
+    initActive(data.token);
+  } catch (err) {
+    emailError.style.display = 'block';
+    emailError.textContent = err.message || 'Activation failed';
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await chrome.storage.local.remove(['token']);
+  showState('intro');
+});
+
+toggleRecentEl.addEventListener('click', () => {
+  recentOpen = !recentOpen;
+  recentListEl.style.display = recentOpen ? 'block' : 'none';
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.lastResult) {
+    updateCurrentSite(changes.lastResult.newValue);
+  }
+  if (changes.recentActivity) {
+    renderRecentActivity(changes.recentActivity.newValue || []);
+  }
+});
+
+chrome.storage.local.get(['token'], (data) => {
+  if (data.token) {
+    showState('active');
+    initActive(data.token);
+  } else {
+    showState('intro');
+  }
+});

@@ -4,50 +4,75 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PhishSight AI</title>
-    <style>
-      :root { color-scheme: light; }
-      body { font-family: Arial, sans-serif; margin: 12px; width: 320px; }
-      h1 { font-size: 16px; margin: 0 0 8px; }
-      .box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #f9fafb; }
-      .warning { display: none; border: 1px solid #ef4444; background: #fee2e2; color: #7f1d1d; padding: 10px; border-radius: 8px; font-weight: 600; }
-      .warning.show { display: block; }
-      .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
-      .value { font-size: 12px; word-break: break-all; }
-      .row { margin-bottom: 8px; }
-      input { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; }
-      button { background: #111827; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-      .status { font-size: 12px; color: #6b7280; }
-      ul { padding-left: 18px; margin: 6px 0 0; font-size: 12px; }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>PhishSight AI</h1>
+    <div class="app">
+      <div class="card">
+        <div class="brand">PhishSight AI</div>
 
-    <div id="warning" class="warning">Warning: Potential phishing detected</div>
+        <div id="stateIntro" class="state">
+          <p class="muted">Protect yourself from phishing attacks in real time.</p>
+          <div class="section">
+            <button id="startBtn" class="btn btn-primary">Start Now</button>
+          </div>
+        </div>
 
-    <div class="box">
-      <div class="label">Backend Endpoint</div>
-      <div class="row"><input id="backendUrl" type="text" placeholder="http://localhost:5000/api/check-url" /></div>
-      <div class="label">JWT Token</div>
-      <div class="row"><input id="token" type="password" placeholder="Paste JWT token" /></div>
-      <button id="saveBtn">Save</button>
-      <div id="saveStatus" class="status"></div>
-    </div>
+        <div id="stateEmail" class="state">
+          <p class="muted">Enter your email to activate protection.</p>
+          <input id="emailInput" class="input" type="email" placeholder="you@example.com" />
+          <div class="section">
+            <button id="activateBtn" class="btn btn-primary">Activate Protection</button>
+          </div>
+          <div id="emailError" class="error" style="display:none;"></div>
+        </div>
 
-    <div class="box">
-      <div class="label">Current URL</div>
-      <div id="url" class="value">Loading…</div>
-    </div>
+        <div id="stateActive" class="state">
+          <div class="section">
+            <div class="section-title">Status</div>
+            <div class="risk-pill" id="statusPill">Loading…</div>
+          </div>
 
-    <div class="box">
-      <div class="label">Heuristic Score</div>
-      <div id="heuristicScore" class="value">—</div>
-      <div class="label" style="margin-top:8px;">ML Probability</div>
-      <div id="mlProbability" class="value">—</div>
-      <div class="label" style="margin-top:8px;">Final Verdict</div>
-      <div id="finalVerdict" class="value">—</div>
-      <div class="label" style="margin-top:8px;">Status</div>
-      <ul id="status"></ul>
+          <div class="section">
+            <div class="section-title">Stats</div>
+            <div class="stats-grid">
+              <div class="stat">
+                <div class="stat-value" id="pagesScanned">0</div>
+                <div class="stat-label">Scanned</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value" id="blockedCount">0</div>
+                <div class="stat-label">Blocked</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value" id="suspiciousCount">0</div>
+                <div class="stat-label">Suspicious</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Current Site</div>
+            <div class="kv">
+              <div><strong>URL:</strong> <span id="currentUrl">Loading…</span></div>
+              <div><strong>Risk Level:</strong> <span id="riskLevel">—</span></div>
+              <div><strong>ML Probability:</strong> <span id="mlProbability">—</span></div>
+              <div><strong>Heuristic Score:</strong> <span id="heuristicScore">—</span></div>
+            </div>
+            <ul id="reasonsList" class="reasons"></ul>
+          </div>
+
+          <div class="section">
+            <span id="toggleRecent" class="link">View Recent Activity</span>
+            <div id="recentList" class="recent-list" style="display:none;"></div>
+          </div>
+
+          <div class="footer">
+            <span id="version">v1.0.0</span>
+            <span id="logoutBtn" class="link">Logout</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="popup.js"></script>
