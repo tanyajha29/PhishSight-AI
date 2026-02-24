@@ -5,8 +5,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
-const checkRoutes = require('./routes/check');
-const dashboardRoutes = require('./routes/dashboard');
+const checkRoutes = require('./routes/checkUrl');
+const statsRoutes = require('./routes/stats');
 
 const app = express();
 
@@ -30,7 +30,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', checkRoutes);
-app.use('/api', dashboardRoutes);
+app.use('/api', statsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
