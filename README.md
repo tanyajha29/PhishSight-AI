@@ -5,15 +5,15 @@ PhishSight AI is a product-style phishing protection extension with automatic ba
 ## Architecture
 **System overview**
 
-![Architecture Overview](Screenshot 2026-02-24 221826.png)
+![Architecture Overview](img/architecture.png)
 
 **Extension UI**
 
-![Extension UI](Screenshot 2026-02-24 221844.png)
+![Extension UI](img/extension-ui.png)
 
 **Blocking Page**
 
-![Blocking Page](Screenshot 2026-02-24 221943.png)
+![Blocking Page](img/blocked-page.png)
 
 ## Components
 - **Chrome Extension (MV3)**: Onboarding, background scanning, badge updates, and blocking UI.
