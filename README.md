@@ -1,13 +1,33 @@
 # PhishSight AI
 
-PhishSight AI is a product-style phishing protection extension with automatic background scanning and blocking. It uses a Node.js backend, a Python ML API, and MongoDB for storage.
+PhishSight AI is a product-style phishing protection extension with automatic background scanning, ML + heuristic scoring, and real-time blocking. The extension is self-contained: users onboard with email once and protection runs silently in the background.
 
 ## Architecture
-**High-level flow**
-1. Extension runs in the background and monitors active tabs.
-2. The extension sends URLs to the backend `/api/check-url` with a JWT.
-3. Backend calls the ML API `/predict`, combines ML + heuristic scoring, and stores results in MongoDB.
-4. Extension updates its UI, badge, and blocks unsafe pages.
+**System overview**
+
+![Architecture Overview](Screenshot 2026-02-24 221826.png)
+
+**Extension UI**
+
+![Extension UI](Screenshot 2026-02-24 221844.png)
+
+**Blocking Page**
+
+![Blocking Page](Screenshot 2026-02-24 221943.png)
+
+## Components
+- **Chrome Extension (MV3)**: Onboarding, background scanning, badge updates, and blocking UI.
+- **Node.js Backend**: Auth, URL checks, logging, and stats aggregation.
+- **Python ML API (Flask)**: Model inference endpoint.
+- **MongoDB**: Stores users and URL logs.
+
+## Data Flow
+1. Extension detects active tab URL.
+2. Extension calls `/api/check-url` with JWT.
+3. Backend calls ML API `/predict`.
+4. Backend combines ML + heuristic scoring.
+5. Result is stored in MongoDB and returned to the extension.
+6. Extension updates badge, popup UI, and blocks unsafe pages.
 
 ## Repository Structure
 ```
@@ -17,11 +37,11 @@ root/
   ml-service/
 ```
 
-## Local Setup
+## Local Development
 **Prerequisites**
 - Node.js 18+ (or 20+)
 - Python 3.10+
-- Docker (MongoDB) or a local MongoDB instance
+- Docker Desktop (for MongoDB) or local MongoDB
 
 **MongoDB (Docker)**
 ```bash
@@ -58,9 +78,9 @@ npm run dev
 | `MONGODB_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/phishsight` |
 | `JWT_SECRET` | JWT signing key | `change_this_secret` |
 | `ML_API_URL` | ML API predict endpoint | `http://127.0.0.1:8000/predict` |
-| `CORS_ORIGIN` | Allowed origins (optional) | `http://localhost:5174` |
+| `CORS_ORIGIN` | Allowed origins | `http://localhost:5174` |
 
-## Extension API Endpoints
+## API Reference
 **Email-only onboarding**
 - `POST /api/auth/extension-login`
 
@@ -99,24 +119,27 @@ Response:
 }
 ```
 
-## Usage Workflow
-1. Install extension.
-2. Enter email once to activate protection.
-3. Extension stores JWT in `chrome.storage.local`.
-4. Background scanning runs automatically on tab updates.
-5. Unsafe sites are blocked with a warning page and reasons.
-6. Stats + current site details are visible in the popup.
+## Extension UX
+**Onboarding**
+- User enters email once.
+- JWT is stored in `chrome.storage.local`.
+
+**Protection**
+- Background scans run on tab updates.
+- Badge reflects verdict (green/safe, orange/suspicious, red/blocked).
+- Blocked pages show reasons and allow safe override by whitelisting the origin.
+
+## Testing Checklist
+- Activate extension with email and confirm JWT stored.
+- Visit a safe site ? verdict `safe` and green badge.
+- Visit a suspicious URL ? verdict `suspicious` and orange badge.
+- Visit a phishing-style URL ? verdict `blocked`, blocking page shown.
+- Confirm stats update in popup.
 
 ## Security Notes
 - JWT is stored only in `chrome.storage.local`.
-- Token is never shown in the UI.
-- Logout clears all local token data.
-
-## Testing
-- Open the extension popup and activate with email.
-- Visit a safe site to see `Safe` status.
-- Visit a suspicious URL to see `Suspicious` status.
-- Visit a phishing-style URL to trigger `Blocked` and the warning page.
+- Token is never exposed in the UI.
+- Logout clears all stored auth data.
 
 ## License
 Proprietary. All rights reserved.
