@@ -151,3 +151,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   }
 });
+
+function scanAllOpenTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (tab.id && tab.url) {
+        runCheck(tab.id, tab.url);
+      }
+    });
+  });
+}
+
+chrome.runtime.onStartup.addListener(scanAllOpenTabs);
+chrome.runtime.onInstalled.addListener(scanAllOpenTabs);
